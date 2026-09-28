@@ -47,7 +47,11 @@ function bind(){
   el("genderPrice").onchange=e=>{state.prices.gender=+e.target.value;save()};
   el("exportBtn").onclick=exportData;
   el("importInput").onchange=importData;
-  el("resetBtn").onclick=()=>{if(confirm("Delete this project and all saved breeders?")){state=defaults();plan=[];save()}};
+  el("resetBtn").onclick=()=>{
+    confirmAction("Delete this project and all saved breeders?", ()=>{
+      state=defaults();plan=[];save();
+    });
+  };
 }
 function setTarget(v){state.target.ivs=v;save()}
 function clamp(v){return Math.max(0,Math.min(31,Number.isFinite(v)?v:0))}
@@ -82,7 +86,7 @@ function renderInventory(){
   });
 }
 function generatePlan(){
-  if(!state.target.species){alert("Set a target species first.");switchTab("target");return}
+  if(!state.target.species){notify("Set a target species first.", true);switchTab("target");return}
   const t=state.target.ivs;
   const required=t.map((v,i)=>v===31?i:null).filter(x=>x!==null);
   plan=[];
@@ -158,6 +162,49 @@ function exportData(){
 }
 function importData(e){
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();r.onload=()=>{try{state={...defaults(),...JSON.parse(r.result)};plan=[];save();alert("Project imported. Generate the plan again.")}catch{alert("Invalid project file.")}};r.readAsText(f);
+  const r=new FileReader();r.onload=()=>{try{state={...defaults(),...JSON.parse(r.result)};plan=[];save();notify("Project imported. Generate the plan again.")}catch{notify("Invalid project file.", true)}};r.readAsText(f);
+}
+function notify(msg, isError=false){
+  let t = document.getElementById("plannerToast");
+  if(!t){
+    t = document.createElement("div");
+    t.id = "plannerToast";
+    t.style.cssText = "position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,0.5);transition:opacity .25s ease;";
+    document.body.appendChild(t);
+  }
+  t.style.background = isError ? "#3a151b" : "#171d2a";
+  t.style.color = isError ? "#ff91a0" : "#eef2f8";
+  t.style.border = `1px solid ${isError ? "#ff647c" : "#7c5cff"}`;
+  t.textContent = msg;
+  t.style.opacity = "1";
+  t.style.display = "block";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{
+    t.style.opacity = "0";
+    setTimeout(()=>{ t.style.display = "none"; }, 250);
+  }, 3500);
+}
+function confirmAction(msg, onOk){
+  const prev = document.getElementById("plannerConfirm");
+  if(prev) prev.remove();
+  const modal = document.createElement("div");
+  modal.id = "plannerConfirm";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;";
+  modal.innerHTML = `
+    <div style="background:#141a26;border:1px solid #273044;border-radius:14px;padding:22px;max-width:420px;width:100%;box-shadow:0 16px 40px rgba(0,0,0,0.6);">
+      <h3 style="margin:0 0 10px;font-size:16px;color:#eef2f8;">Are you sure?</h3>
+      <p style="margin:0 0 20px;color:#8e9ab0;font-size:13px;line-height:1.5;">${esc(msg)}</p>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button id="cancelConfirmBtn" class="ghost" style="padding:8px 14px;border-radius:8px;">Cancel</button>
+        <button id="okConfirmBtn" class="primary" style="background:#ff647c;padding:8px 14px;border-radius:8px;">Delete</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector("#cancelConfirmBtn").onclick = () => modal.remove();
+  modal.querySelector("#okConfirmBtn").onclick = () => {
+    modal.remove();
+    onOk();
+  };
 }
 init();

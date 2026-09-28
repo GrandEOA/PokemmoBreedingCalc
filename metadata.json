@@ -1,0 +1,8 @@
+{
+  "name": "PokeMMO Breeding Planner",
+  "description": "PokeMMO breeding calculator and checklist to plan IV chains, track breeders, and avoid mistakes.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
